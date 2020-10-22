@@ -33,5 +33,17 @@ namespace DevopsCommandoLite.Terminal.Services
 
         [JsonProperty(PropertyName = "System.WorkItemType")]
         public string Type { get; set; }
+
+        [JsonProperty(PropertyName = "System.CreatedBy")]
+        public WorkItemCreatedByField CreatedBy { get; set; }
+    }
+
+
+    public class WorkItemCreatedByField
+    {
+        public string Id { get; set; }
+        public string DisplayName { get; set; }
+        public string UniqueName { get; set; }
+        public string ImageUrl { get; set; }
     }
 }

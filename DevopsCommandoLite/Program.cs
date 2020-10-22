@@ -38,34 +38,39 @@ namespace DevopsCommandoLiteLite
                 Console.WriteLine("Repos and Pull request ids are not set");
                 return;
             }
-            var list = new List<string>();
+
             Console.WriteLine("");
+            var reposSummary = "";
+
+            var workItems = new List<WorkItem>();
+
             foreach (var r in repos)
             {
                 Console.Write($"Looking in {r.Repo}");
-                var ret = await GetUseStoreis(r.Repo, r.PRs);
-                if (ret.IsSuccess)
-                {
-                    Console.WriteLine($" - Found {ret.Messages.Count} work items");
-                    list.AddRange(ret.Messages);
-                }
-                else
-                {
-                    Console.WriteLine("! ERROR IN " + r.Repo);
-                    foreach (var m in ret.Messages)
-                        Console.WriteLine(m);
-                }
-                
+                var wi = await GetWorkItems(r.Repo, r.PRs);                
+                Console.WriteLine($" - Found {wi.Count} work items");
+                workItems.AddRange(wi);
+
+                reposSummary += $"{r.Repo}({wi.Count}), ";
             }
             Console.WriteLine("");
 
+            foreach (var createdBy in workItems.Select(p => p.Fields.CreatedBy.DisplayName).Distinct())
+            {
+                Console.WriteLine($"## Work items created by @<{createdBy}> :");
 
-            foreach (var m in list.Distinct())
-                Console.WriteLine($"- {m}{Environment.NewLine}");
+                foreach (var wi in workItems.Where(p => p.Fields.CreatedBy.DisplayName == createdBy))
+                {
+                    Console.WriteLine($"- #{wi.Id}");
+                }
+            }
+
+            Console.WriteLine("");
+            Console.WriteLine("Repos to deploy: " + reposSummary);
             Console.ReadLine();
         }
 
-        static async Task<CommandResult> GetUseStoreis(string repoId, IEnumerable<string> prIds)
+        static async Task<IList<WorkItem>> GetWorkItems(string repoId, IEnumerable<string> prIds)
         {
             var prService = new PullRequestService(new ApiService());
             
@@ -73,32 +78,27 @@ namespace DevopsCommandoLiteLite
             await Task.WhenAll(requests.Select(p => p.Task));
 
             var workItemService = new WorkItemService();
-            var resp = new CommandResult { IsSuccess = true };
+            var workItems = new List<WorkItem>();
+
+            var workItemIds = new List<string>();
             foreach (var request in requests)
             {
                 var result = await request.Task;
 
-                if (result.IsSuccess)
+                if (!result.IsSuccess)
                 {
-                    foreach(var wi in result.Data.Value)
-                        resp.Messages.Add($"• #{wi.Id}");
-
-                    // Version that can get more workitem details
-                    //var listt = await workItemService.GetWorkItems(result.Data.Value.Select(p => p.Id).ToList(), "System.Title,System.WorkItemType");
-
-                    //foreach (var wi in listt.Data.Value)
-                    //{
-                    //    //var isBug = wi.Fields.Type == "Bug" ? "[Bug]" : "";
-                    //    //resp.Messages.Add($"• {isBug} {wi.Fields.Title} - #{wi.Id}");
-                    //}
+                    throw new Exception($"Request for PR {request.Id} failed: {result.ErrorMessage}");   
                 }
-                else
-                {
-                    resp.Messages.Add($"Request for PR {request.Id} failed: {result.ErrorMessage}");
-                }
+                workItemIds.AddRange(result.Data.Value.Select(p => p.Id).ToList());
             }
 
-            return resp;
+            var workItemResponse = await workItemService.GetWorkItems(workItemIds, "System.Title,System.WorkItemType,System.CreatedBy");
+            if (!workItemResponse.IsSuccess)
+            { 
+                throw new Exception($"Request for WorkItemsfailed: {workItemResponse.ErrorMessage}");
+            }
+            
+            return workItemResponse.Data.Value;
         }
     }
 }

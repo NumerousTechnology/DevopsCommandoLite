@@ -13,7 +13,8 @@ namespace DevopsCommandoLite.Terminal.Services
 
         public async Task<DevopsResponse<WorkItemReferenceParent>> GetWorkItemList(string repositoryId, string pullRequestId)
         {
-            return await _api.Get<WorkItemReferenceParent>($"git/repositories/{repositoryId}/pullRequests/{pullRequestId}/workitems?fields=System.Title,System.WorkItemType");
+            // https://docs.microsoft.com/en-us/rest/api/azure/devops/git/pull%20request%20work%20items/list?view=azure-devops-rest-6.0
+            return await _api.Get<WorkItemReferenceParent>($"git/repositories/{repositoryId}/pullRequests/{pullRequestId}/workitems");
         }
     }
 }
