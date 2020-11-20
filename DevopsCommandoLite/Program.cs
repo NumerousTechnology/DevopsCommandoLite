@@ -59,9 +59,13 @@ namespace DevopsCommandoLiteLite
             {
                 Console.WriteLine($"## Work items created by @<{createdBy}> :");
 
-                foreach (var wi in workItems.Where(p => p.Fields.CreatedBy.DisplayName == createdBy))
+                foreach (var wiId in workItems
+                    .Where(p => p.Fields.CreatedBy.DisplayName == createdBy)
+                    .OrderBy(p=>p.Id)
+                    .Select(p=>p.Id)
+                    .Distinct())
                 {
-                    Console.WriteLine($"- #{wi.Id}");
+                    Console.WriteLine($"- #{wiId}");
                 }
             }
 
