@@ -32,7 +32,7 @@ namespace DevopsCommandoLiteLite
                 return;
             }
 
-            var repos = settings.Repos.Where(p => p.PRs != null && p.PRs.Count > 0).ToList();
+            var repos = settings.Repos.ToList();
             if (!repos.Any())
             {
                 Console.WriteLine("Repos and Pull request ids are not set");
@@ -42,6 +42,22 @@ namespace DevopsCommandoLiteLite
             Console.WriteLine("");
             var reposSummary = "";
 
+
+            var prService = new PullRequestService(new ApiService());
+
+            var lastCompleted = await prService.GetCompleted(repos.First().Repo, 1);
+
+
+            var rett = await prService.Create(repos.First().Repo, new CreatePrModel { 
+                 sourceRefName = "refs/heads/" + "master", // refs/heads/master
+                 targetRefName = "refs/heads/release",
+                 title = "automated pr test",
+                 description = "Hi!"
+            });
+
+
+
+            return;
             var workItems = new List<WorkItem>();
 
             foreach (var r in repos)
